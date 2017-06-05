@@ -126,14 +126,15 @@ fn main() {
     // Open window
     let mut window: PistonWindow = WindowSettings::new(
             "Tic Tac Toe",
-            [600, 600]
+            [600, 700]
         )
         .exit_on_esc(true)
         .build()
         .unwrap();
 
-    let assets = find_folder::Search::ParentsThenKids(3,3)
+    let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets").unwrap();
+
 
     // Cross image
     let cross = Texture::from_path(
@@ -151,11 +152,18 @@ fn main() {
         &TextureSettings::new()
     ).unwrap();
 
+
+    // Load font
+    let ref font = assets.join("FiraSans-Regular.ttf");
+    let factory = window.factory.clone();
+    let mut glyphs = Glyphs::new(font, factory).unwrap();
+
     // Initialize mouse
     let mut mouse_pos = (-1.0 as f64, -1.0 as f64);
     let mut cross_turn = true;
     let mut cross_score = 0;
     let mut circle_score = 0;
+    let mut ties = 0;
 
     // Initiaize game board
     let mut game_board = GameBoard { grid : Vec::<GridSquare>::new(),
@@ -178,6 +186,7 @@ fn main() {
 
     // Main draw loop
     while let Some(e) = window.next() {
+        
         // Draw window
         window.draw_2d(&e, |c, g| {
             clear([255.0, 255.0, 255.0, 1.0], g);
@@ -195,7 +204,13 @@ fn main() {
             rectangle([0.0, 0.0, 0.0, 1.0],
                      game_board.horz2,
                      c.transform, g);
-            
+            text::Text::new_color([0.0, 0.0, 0.0, 1.0], 32).draw(
+                     &format!("Crosses: {}      Circles: {}     Ties: {}", cross_score, circle_score, ties),
+                     &mut glyphs,
+                     &c.draw_state,
+                     c.transform.trans(75.0, 650.0),
+                     g);
+
             for square in &game_board.grid{
                 match square.token {
                     Token::Cross => image(&cross,
@@ -207,7 +222,6 @@ fn main() {
                                    c.transform, g),
                 }
             }
-
         });
 
         // Track mouse position
@@ -232,7 +246,7 @@ fn main() {
                             Some(Cross) => {cross_score += 1; game_board.reset();},
                             Some(Circle) => {circle_score += 1; game_board.reset();},
                             Some(Empty) => (),
-                            None => {println!("Draw!"); game_board.reset();}
+                            None => {ties += 1; game_board.reset();}
                         }
                     }
                 }
