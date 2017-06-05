@@ -40,7 +40,7 @@ impl GetSquare for GameBoard {
                 return i as usize;
             }
         }
-        0 as usize
+        10 as usize
     }
 }
 
@@ -53,27 +53,33 @@ impl ResetGameBoard for GameBoard {
 }
 
 // Check for win, return a token indicating winning player (or Empty on no win)
-fn CheckForWin(grid : &Vec<GridSquare>) -> Token {
+fn CheckForWin(grid : &Vec<GridSquare>) -> Option<Token> {
 
     // Construct the magic square
     let mut win_grid =  vec![8, 1, 6, 3, 5, 7, 4, 9, 2];
+    let mut total_moves = 0;
     for (i, square) in grid.iter().enumerate() {
         match square.token {
-            Token::Cross => win_grid[i] *= 2,
-            Token::Circle => win_grid[i] *= -2,
-            _ => win_grid[i] += 0
+            Token::Cross => {win_grid[i] *= 2; total_moves += 1},
+            Token::Circle => {win_grid[i] *= -2; total_moves += 1},
+            _ => ()
         }
     }
+
+    if(total_moves >= 9){
+        return None;
+    }
+
     // Check rows
     for i in 0..3 {
         let sum = win_grid[i*3] + win_grid[i*3 + 1] + win_grid[i*3 + 2];
         if sum == 30 {
             println!("Crosses won!");
-            return Token::Cross
+            return Some(Token::Cross);
         }
         else if sum == -30 {
             println!("Cirlces won!");
-            return Token::Circle;
+            return Some(Token::Circle);
         }
     }
 
@@ -82,36 +88,37 @@ fn CheckForWin(grid : &Vec<GridSquare>) -> Token {
         let sum = win_grid[i] + win_grid[i + 3] + win_grid[i + 6];
         if sum == 30 {
             println!("Crosses won!");
-            return Token::Cross
+            return Some(Token::Cross);
         }
         else if sum == -30 {
             println!("Cirlces won!");
-            return Token::Circle;
+            return Some(Token::Circle);
         }
     }
 
-    // Check Diagonals
+    // Check Down Diagonal
     let sum = win_grid[0] + win_grid[4] + win_grid[8];
     if sum == 30 {
         println!("Crosses won!");
-        return Token::Cross
+        return Some(Token::Cross);
     }
     else if sum == -30 {
         println!("Cirlces won!");
-        return Token::Circle;
+        return Some(Token::Circle);
     }
 
+    // Check Up Diagonal
     let sum = win_grid[2] + win_grid[4] + win_grid[6];
     if sum == 30 {
         println!("Crosses won!");
-        return Token::Cross
+        return Some(Token::Cross);
     }
     else if sum == -30 {
         println!("Cirlces won!");
-        return Token::Circle;
+        return Some(Token::Circle);
     }
 
-    Token::Empty
+    Some(Token::Empty)
 }
 
 fn main() {
@@ -168,6 +175,8 @@ fn main() {
     }
 
     window.set_lazy(true);
+
+    // Main draw loop
     while let Some(e) = window.next() {
         // Draw window
         window.draw_2d(&e, |c, g| {
@@ -211,17 +220,20 @@ fn main() {
             use piston_window::Button::Mouse;
             if button == Mouse(MouseButton::Left) {
                 let sq = game_board.getSquare(mouse_pos.0, mouse_pos.1);
-                // If place is empty, put token
-                if game_board.grid[sq].token == Token::Empty {
-                    if cross_turn {game_board.grid[sq].token = Token::Cross;}
-                    else {game_board.grid[sq].token = Token::Circle}
-                    cross_turn = !cross_turn;
-                    // Check for win
-                    match CheckForWin(&game_board.grid) {
-                        Token::Cross => {cross_score += 1; game_board.reset();},
-                        Token::Circle => {circle_score += 1; game_board.reset();},
-                        _ => ()
-                    
+                if (sq < 10){
+                    // If place is empty, put token
+                    if game_board.grid[sq].token == Token::Empty {
+                        if cross_turn {game_board.grid[sq].token = Token::Cross;}
+                        else {game_board.grid[sq].token = Token::Circle}
+                        cross_turn = !cross_turn;
+                        // Check for win
+                        use Token::*;
+                        match CheckForWin(&game_board.grid) {
+                            Some(Cross) => {cross_score += 1; game_board.reset();},
+                            Some(Circle) => {circle_score += 1; game_board.reset();},
+                            Some(Empty) => (),
+                            None => {println!("Draw!"); game_board.reset();}
+                        }
                     }
                 }
             }
